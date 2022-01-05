@@ -284,6 +284,8 @@ class TurbospecManager:
         os.remove('DATA')
         self._bsyn_flag = True
 
+        return synthpath
+
     def _write_parameters(self, version, **kwargs):
         '''
         Creates a list of lines to feed into babsma and bsyn.
