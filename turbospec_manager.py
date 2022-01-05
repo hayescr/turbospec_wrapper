@@ -284,7 +284,7 @@ class TurbospecManager:
         os.remove('DATA')
         self._bsyn_flag = True
 
-        return synthpath
+        return result_filename
 
     def _write_parameters(self, version, **kwargs):
         '''
