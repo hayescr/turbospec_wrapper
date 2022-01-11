@@ -1,14 +1,12 @@
 import os
 import subprocess
-from abund_utils import atomic_sym_to_num, solar_abund
+from abund_utils import atomic_sym_to_num, solar_abund, ALPHAS
 
 WAVE_KEYS = ['lambda_range', 'delta_lambda'],
 ABUND_KEYS = ['metals', 'alphas', 'helium', 'rprocess', 'sprocess',
-              'elements'],
-BABSMA_KEYS = ['model', 'vmicro', 'marcs_file_flag'],
+              'elements']
+BABSMA_KEYS = ['model', 'vmicro', 'marcs_file_flag']
 BSYN_KEYS = ['sph_flag', 'linelists', 'isotopes']
-
-ALPHAS = ['O', 'Ne', 'Mg', 'Si', 'S', 'Ar', 'Ca', 'Ti']
 
 
 class TurbospecManager:
