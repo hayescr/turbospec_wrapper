@@ -126,7 +126,7 @@ class TurbospecManager:
         elif isinstance(solar_reference, dict):
             solar_abu = solar_reference
 
-        abundance_dict = {elem: abund - metals for elem,
+        abundance_dict = {elem: abund + metals for elem,
                           abund in solar_abu.items() if elem not in ['H', 'He']}
 
         for elem in ALPHAS:
