@@ -294,8 +294,8 @@ class TurbospecManager:
 
         eof_list = []
 
-        eof_list += [f"'LAMBDA_MIN:'  '{self.lambda_min}'\n"]
-        eof_list += [f"'LAMBDA_MAX:'  '{self.lambda_max}'\n"]
+        eof_list += [f"'LAMBDA_MIN:'  '{self.lambda_min:.3f}'\n"]
+        eof_list += [f"'LAMBDA_MAX:'  '{self.lambda_max:.3f}'\n"]
         eof_list += [f"'LAMBDA_STEP:' '{self.delta_lambda}'\n"]
         if version == 'babsma':
             eof_list += [f"'MODELINPUT:' '{kwargs['modelpath']}'\n"]
