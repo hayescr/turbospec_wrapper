@@ -114,7 +114,8 @@ class TurboSynth:
         for key, frac in iso_dict.items():
             self.isotopes[key] = frac
 
-    def synth(self, wave_range, delta_lambda=0.01, synth_fname=None):
+    def synth(self, wave_range, delta_lambda=0.01, synth_fname=None,
+              verbose=False):
         '''
         Makes a synthetic spectrum.
 
@@ -135,7 +136,7 @@ class TurboSynth:
         self.synth_fname = self.turbodaemon.run_bsyn(
             sph_flag=sph_flag, opac_filename=self.opac_filename,
             linelists=self.linelists, isotopes=self.isotopes,
-            result_filename=synth_fname, verbose=True)
+            result_filename=synth_fname, verbose=verbose)
 
     def convol(self, profile=None, fwhm=None, vel=None, synth_fname=None,
                convol_fname=None):
