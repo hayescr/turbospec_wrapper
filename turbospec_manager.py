@@ -46,6 +46,7 @@ class TurbospecManager:
         self._abund_flag = False
         self._babsma_flag = False
         self._syn_flag = False
+        self._eqwidt_flag = False
 
         if auto:
             wave_kwargs = {key: value for key,
@@ -196,7 +197,9 @@ class TurbospecManager:
             stdout = open('/dev/null', 'w')
             stderr = subprocess.STDOUT
 
-        os.symlink(f'{self.turbopath}/DATA', 'DATA')
+        print(os.path.exists('DATA'))
+        if not os.path.exists('DATA'):
+            os.symlink(f'{self.turbopath}/DATA', 'DATA')
 
         p = subprocess.Popen([f'{self.turbo_exec}/babsma_lu'],
                              stdin=subprocess.PIPE,
@@ -206,7 +209,7 @@ class TurbospecManager:
             p.stdin.write(line.encode('utf-8'))
         stdout, stderr = p.communicate()
 
-        os.remove('DATA')
+        # os.remove('DATA')
         self._babsma_flag = True
 
         return self.opac_filename
@@ -269,7 +272,8 @@ class TurbospecManager:
             stdout = open('/dev/null', 'w')
             stderr = subprocess.STDOUT
 
-        os.symlink(f'{self.turbopath}/DATA', 'DATA')
+        if not os.path.exists('DATA'):
+            os.symlink(f'{self.turbopath}/DATA', 'DATA')
 
         p = subprocess.Popen([f'{self.turbo_exec}/bsyn_lu'],
                              stdin=subprocess.PIPE,
@@ -279,8 +283,82 @@ class TurbospecManager:
             p.stdin.write(line.encode('utf-8'))
         stdout, stderr = p.communicate()
 
-        os.remove('DATA')
+        # os.remove('DATA')
         self._bsyn_flag = True
+
+        return result_filename
+
+    def run_eqwidt(self, opac_filename=None, sph_flag=True, linelists=None,
+                   isotopes={}, result_filename=None, verbose=False):
+        '''
+        Runs eqwidt to measure abundances from equivalent widths.  Will write
+            a resulting file that gives the wavelengths, normalized and
+            unnormalized fluxes for the synthetic spectrum.
+
+        opac_filename : string, filename and path to the desired opacity model
+            file, which can be created directly from run_babsma
+        sph_flag : boolean, True for spherical radiative transfer and False for
+            plane parallel radiative transfer
+        linelists : list, gives the names (paths) to the input linelists
+        isotopes : dictionary of float : float, each key, value pair should
+            have the elemental number followed by the mass as the decimal,
+            e.g., {6.012 : 0.9375, 6.013 : 0.625} for carbon 12 and 13
+        result_filename : string, optional way to set the filename for the
+            output filename
+        verbose : boolean, set to True to see the log from bsyn
+
+        returns:
+        synthpath : string, filepath to the resulting synthetic spectrum
+
+        '''
+
+        if opac_filename is not None:
+            self.opac_filename = opac_filename
+        elif not self._babsma_flag:
+            print('Please run babsma first to produce and opacity file,'
+                  'otherwise enter in an opacity file.')
+
+        if result_filename is None:
+            result_filename = f'{self.model}_{self.lambda_min}_{self.lambda_max}.findabu'
+
+        synthpath = f'{self.outpath}/{result_filename}'
+
+        if sph_flag:
+            sph_flag_string = 'T'
+        else:
+            sph_flag_string = 'F'
+
+        eqwidt_dict = {
+            'synthpath': synthpath,
+            'sph_flag': sph_flag_string,
+            'isotopes': isotopes,
+            'linelists': linelists
+        }
+
+        eof_list = self._write_parameters('eqwidt', **eqwidt_dict)
+
+        for line in eof_list:
+            print(line, end='')
+        if verbose:
+            stdout = None
+            stderr = None
+        else:
+            stdout = open('/dev/null', 'w')
+            stderr = subprocess.STDOUT
+
+        if not os.path.exists('DATA'):
+            os.symlink(f'{self.turbopath}/DATA', 'DATA')
+
+        p = subprocess.Popen([f'{self.turbo_exec}/eqwidt_lu'],
+                             stdin=subprocess.PIPE,
+                             stdout=stdout,
+                             stderr=stderr)
+        for line in eof_list:
+            p.stdin.write(line.encode('utf-8'))
+        stdout, stderr = p.communicate()
+
+        # os.remove('DATA')
+        self._eqwidt_flag = True
 
         return result_filename
 
@@ -304,8 +382,14 @@ class TurbospecManager:
             eof_list += ["'INTENSITY/FLUX:' 'Flux'\n"]
             eof_list += ["'COS(THETA)    :' '1.00'\n"]
             eof_list += ["'ABFIND        :' '.false.'\n"]
+        if version == 'eqwidt':
+            eof_list += ["'INTENSITY/FLUX:' 'Flux'\n"]
+            eof_list += ["'COS(THETA)    :' '1.00'\n"]
+            eof_list += ["'ABFIND        :' '.true.'\n"]
         eof_list += [f"'MODELOPAC:' '{self.opac_filename}'\n"]
-        if version == 'bsyn':
+        if (version == 'bsyn') or (version == 'eqwidt'):
+            eof_list += [f"'RESULTFILE :' '{kwargs['synthpath']}'\n"]
+        if version == 'eqwidt':
             eof_list += [f"'RESULTFILE :' '{kwargs['synthpath']}'\n"]
         eof_list += [f"'METALLICITY:'    '{self.metals:.3f}'\n"]
         eof_list += [f"'ALPHA/Fe   :'    '{self.alphas:.3f}'\n"]
@@ -315,14 +399,14 @@ class TurbospecManager:
         eof_list += [f"'INDIVIDUAL ABUNDANCES:'  '{len(self.abundances)}'\n"]
         for elem, abund in self.abundances.items():
             eof_list += [f"{elem}  {abund:.3f}\n"]
-        if version == 'bsyn':
+        if (version == 'bsyn') or (version == 'eqwidt'):
             eof_list += [f"'ISOTOPES:'  '{len(kwargs['isotopes'])}'\n"]
             for isotope, fraction in kwargs['isotopes'].items():
                 eof_list += [f"{isotope}  {fraction:.6f}\n"]
         if version == 'babsma':
             eof_list += ["'XIFIX:' 'T'\n"]
             eof_list += [f"{kwargs['vmicro']:.3f}\n"]
-        if version == 'bsyn':
+        if (version == 'bsyn') or (version == 'eqwidt'):
             eof_list += [f"'NFILES:'  '{len(kwargs['linelists'])}'\n"]
             for linelist in kwargs['linelists']:
                 eof_list += [f"{linelist}\n"]

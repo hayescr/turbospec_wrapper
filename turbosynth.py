@@ -138,6 +138,30 @@ class TurboSynth:
             linelists=self.linelists, isotopes=self.isotopes,
             result_filename=synth_fname, verbose=verbose)
 
+    def eqwidth(self, wave_range, delta_lambda=0.01, abund_fname=None,
+                verbose=False):
+        '''
+        Makes a synthetic spectrum.
+
+        wave_range : len 2 list, wavelenght range to synthesize in angstroms
+        delta_lambda : float, wavelength step to synthesize in angstroms
+        synth_fname : string, output name for the synthesized spectrum
+        '''
+        self.turbodaemon.set_wave(lambda_range=wave_range,
+                                  delta_lambda=delta_lambda)
+        self.opac_filename = self.turbodaemon.run_babsma(model=self.atmosname,
+                                                         vmicro=self.vmicro)
+
+        if self.logg < 3.5:
+            sph_flag = True
+        else:
+            sph_flag = False
+
+        self.abund_fname = self.turbodaemon.run_eqwidt(
+            sph_flag=sph_flag, opac_filename=self.opac_filename,
+            linelists=self.linelists, isotopes=self.isotopes,
+            result_filename=abund_fname, verbose=verbose)
+
     def convol(self, profile=None, fwhm=None, vel=None, synth_fname=None,
                convol_fname=None):
         '''
